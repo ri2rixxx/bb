@@ -10,5 +10,8 @@
       "name": "Student",
       "role": "user"
     }
-  ]
-}{"users": [], "admin": {"pin": "1234"}}
+  ],
+  "admin": {
+    "pin": "1234"
+  }
+}
