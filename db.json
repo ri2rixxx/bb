@@ -1,1 +1,14 @@
-{"users": [], "admin": {"pin": "1234"}}
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Margarita",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Student",
+      "role": "user"
+    }
+  ]
+}{"users": [], "admin": {"pin": "1234"}}
