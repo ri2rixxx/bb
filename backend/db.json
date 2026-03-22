@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "name": "Петроченко Маргарита Романовна",
+      "email": "margarita10031983@gmail.com",
+      "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "accessLevel": "Low",
+      "id": 1774094885371,
+      "createdAt": "2026-03-21T12:08:05.371Z",
+      "dataStatus": "ENCRYPTED_SHA256",
+      "updatedAt": "2026-03-21T12:31:35.492Z"
+    },
+    {
+      "name": "Третьяков Матвей Александрович",
+      "email": "test@gmail.com",
+      "password": "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f",
+      "accessLevel": "Medium",
+      "id": 1774096357500,
+      "createdAt": "2026-03-21T12:32:37.500Z",
+      "securityStatus": "ENCRYPTED_SHA256"
+    },
+    {
+      "name": "Кент Марк Александрович",
+      "email": "aboba67@gmail.com",
+      "password": "e24df920078c3dd4e7e8d2442f00e5c9ab2a231bb3918d65cc50906e49ecaef4",
+      "accessLevel": "High",
+      "id": 1774096424013,
+      "createdAt": "2026-03-21T12:33:44.013Z",
+      "securityStatus": "ENCRYPTED_SHA256"
+    }
+  ]
+}
