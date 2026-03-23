@@ -1,62 +1,96 @@
 import React, { useState, useEffect } from "react";
-import { getUsers } from "../api";
+import { getUsers, saveUsers } from "../api";
 import { Link } from "react-router-dom";
 
 const ListPage = () => {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminKey, setAdminKey] = useState("admin123"); // Мастер-ключ
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const data = await getUsers();
-      setUsers(data);
-      setLoading(false);
+    fetchData();
+    
+    // Слушатель хоткея Ctrl + Alt + A
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.altKey && e.code === 'KeyA') {
+        const pass = prompt("Введите мастер-ключ администратора:");
+        if (pass === adminKey) {
+          setIsAdmin(prev => !prev);
+        } else {
+          alert("Доступ запрещен!");
+        }
+      }
     };
-    fetchUsers();
-  }, []);
 
-  if (loading) return <div className="loader">Загрузка реестра ПДн...</div>;
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [adminKey]);
+
+  const fetchData = async () => {
+    const data = await getUsers();
+    setUsers(data);
+  };
+
+  const deleteUser = async (id) => {
+    if (window.confirm("Удалить запись?")) {
+      const updated = users.filter(u => u.id !== id);
+      await saveUsers(updated);
+      setUsers(updated);
+    }
+  };
+
+  const maskData = (value, level) => {
+    if (isAdmin) return value;
+    if (level === 'High') return '••••••••';
+    if (level === 'Medium') return value.substring(0, 3) + '***@***';
+    return value;
+  };
 
   return (
-    <div className="container" style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ color: '#2c3e50' }}>🔒 Реестр субъектов ПДн (Cloud)</h2>
-        <Link to="/add" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', borderRadius: '5px' }}>
-          + Добавить субъекта
-        </Link>
-      </div>
+    <div className="dashboard">
+      <header className="header">
+        <div className="logo">
+          <span className="icon">🛡️</span>
+          <h1>Security SPA <small>v2.0 Cloud</small></h1>
+        </div>
+        <div className="actions">
+          {isAdmin && <button className="btn-key" onClick={() => setAdminKey(prompt("Новый мастер-ключ:", adminKey))}>🔑 Сменить ключ</button>}
+          <Link to="/add" className="btn-add">+ Добавить запись</Link>
+        </div>
+      </header>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#34495e', color: 'white', textAlign: 'left' }}>
-            <th style={{ padding: '12px' }}>ФИО</th>
-            <th style={{ padding: '12px' }}>Роль</th>
-            <th style={{ padding: '12px' }}>Статус пароля</th>
-            <th style={{ padding: '12px' }}>Дата создания</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '12px' }}><strong>{user.name}</strong></td>
-              <td style={{ padding: '12px' }}>
-                <span style={{ 
-                  backgroundColor: user.role === 'Admin' ? '#e74c3c' : '#3498db', 
-                  color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' 
-                }}>
-                  {user.role}
-                </span>
-              </td>
-              <td style={{ padding: '12px', color: '#27ae60', fontSize: '12px' }}>
-                🛡️ Хеширован (BCrypt)
-              </td>
-              <td style={{ padding: '12px', color: '#7f8c8d' }}>{user.createdAt || 'Не указана'}</td>
+      <div className="table-container">
+        <div className="status-bar">
+          Статус системы: <span className={isAdmin ? "status-admin" : "status-user"}>
+            {isAdmin ? "🔓 АДМИНИСТРАТОР (ПОЛНЫЙ ДОСТУП)" : "🔒 ПОЛЬЗОВАТЕЛЬ (ОГРАНИЧЕННЫЙ ДОСТУП)"}
+          </span>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>ФИО СУБЪЕКТА</th>
+              <th>КОНТАКТЫ</th>
+              <th>УРОВЕНЬ</th>
+              <th>ХЕШ ПАРОЛЯ</th>
+              <th>ДЕЙСТВИЯ</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {users.length === 0 && <p style={{ textAlign: 'center', marginTop: '20px' }}>Реестр пока пуст.</p>}
+          </thead>
+          <tbody>
+            {users.map(user => (
+              <tr key={user.id} className={`row-${user.securityLevel.toLowerCase()}`}>
+                <td>{maskData(user.name, user.securityLevel)}</td>
+                <td>{maskData(user.email, user.securityLevel)}</td>
+                <td><span className={`badge ${user.securityLevel}`}>{user.securityLevel}</span></td>
+                <td className="hash-cell">{isAdmin ? user.password : "********************"}</td>
+                <td>
+                  <button className="btn-delete" onClick={() => deleteUser(user.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
