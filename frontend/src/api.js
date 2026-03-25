@@ -1,52 +1,50 @@
-const OWNER = "ri2rixxx";
-const REPO = "bb";
-const TOKEN = "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"; 
-// Проверь, чтобы путь в репо был именно такой:
-const URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/frontend/src/db.json`;
+const BIN_ID = "9e3168f8d24c67097e40"; 
+const BASE_URL = `https://api.npoint.io/${BIN_ID}`;
 
 export const getUsers = async () => {
   try {
-    const res = await fetch(URL, { 
-      headers: { Authorization: `token ${TOKEN}` },
-      cache: 'no-store' 
-    });
+    const res = await fetch(`${BASE_URL}?t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
-    // Корректный апдейт для кириллицы
-    const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-    return content.users || [];
-  } catch (e) { return []; }
+    return Array.isArray(data.users) ? data.users : [];
+  } catch (e) { 
+    console.error("Fetch users error:", e);
+    return []; 
+  }
 };
 
 export const getSettings = async () => {
   try {
-    const res = await fetch(URL, { headers: { Authorization: `token ${TOKEN}` } });
+    const res = await fetch(`${BASE_URL}?t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
-    const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-    return content.settings || { ri2rixxx: "ri2rixxx" };
-  } catch (e) { return { ri2rixxx: "ri2rixxx" }; }
+    return data.settings || { masterKey: "ri2rixxx" };
+  } catch (e) { 
+    return { masterKey: "ri2rixxx" }; 
+  }
 };
 
 export const saveData = async (users, settings) => {
-  try {
-    const getRes = await fetch(URL, { headers: { Authorization: `token ${TOKEN}` } });
-    const getData = await getRes.json();
-    
-    // Кодируем обратно в Base64 с поддержкой русских букв
-    const jsonString = JSON.stringify({ users, settings }, null, 2);
-    const updatedContent = btoa(unescape(encodeURIComponent(jsonString)));
+  const payload = {
+    users: Array.isArray(users) ? users : [],
+    settings: settings || { masterKey: "nstu2026" }
+  };
 
-    const res = await fetch(URL, {
-      method: "PUT",
-      headers: {
-        "Authorization": `token ${TOKEN}`,
-        "Content-Type": "application/json"
+  try {
+    const res = await fetch(BASE_URL, {
+      method: "POST", // POST на npoint работает стабильнее с CORS
+      headers: { 
+        "Content-Type": "application/json",
+        // Убираем лишние заголовки, чтобы не провоцировать CORS
       },
-      body: JSON.stringify({
-        message: "database update",
-        content: updatedContent,
-        sha: getData.sha
-      })
+      body: JSON.stringify(payload)
     });
-    return res.ok;
-  } catch (e) { return false; }
+
+    if (!res.ok) {
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    return true;
+  } catch (e) {
+    console.error("Save error:", e);
+    return false;
+  }
 };
