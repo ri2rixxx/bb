@@ -1,6 +1,6 @@
 const OWNER = "ri2rixxx"; // Твой ник на Гитхабе
 const REPO = "bb"; // Название твоего репозитория
-const TOKEN = "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"; // Тот, что ты создала в Settings
+const TOKEN = "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"; // Тот, что ты создала в Settings
 const URL = `https://api.github.com/repos/${OWNER}/${REPO}/contents/src/db.json`;
 
 export const getUsers = async () => {
