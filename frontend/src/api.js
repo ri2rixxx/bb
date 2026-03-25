@@ -1,4 +1,4 @@
-const BIN_ID = "9e3168f8d24c67097e40"; 
+const BIN_ID = "f6983cb6fce68c33105e"; 
 const BASE_URL = `https://api.npoint.io/${BIN_ID}`;
 
 export const getUsers = async () => {
@@ -13,7 +13,7 @@ export const getSettings = async () => {
   try {
     const res = await fetch(BASE_URL);
     const data = await res.json();
-    // На твоем скрине ключ называется ri2rixxx
+    // На скрине ключ ri2rixxx, подстраиваемся под него
     return data.settings || { ri2rixxx: "ri2rixxx" };
   } catch (e) { return { ri2rixxx: "ri2rixxx" }; }
 };
