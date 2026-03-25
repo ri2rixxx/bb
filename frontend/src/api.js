@@ -16,35 +16,33 @@ export const getSettings = async () => {
   try {
     const res = await fetch(`${BASE_URL}?t=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
-    return data.settings || { masterKey: "nstu2026" };
+    return data.settings || { masterKey: "ri2rixxx" };
   } catch (e) { 
-    return { masterKey: "nstu2026" }; 
+    return { masterKey: "ri2rixxx" }; 
   }
 };
 
 export const saveData = async (users, settings) => {
   const payload = {
     users: Array.isArray(users) ? users : [],
-    settings: settings?.masterKey ? settings : { masterKey: "nstu2026" }
+    settings: settings || { masterKey: "nstu2026" }
   };
 
   try {
-    // Сначала пробуем PUT, так как это стандарт для npoint
-    let res = await fetch(BASE_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch(BASE_URL, {
+      method: "POST", // POST на npoint работает стабильнее с CORS
+      headers: { 
+        "Content-Type": "application/json",
+        // Убираем лишние заголовки, чтобы не провоцировать CORS
+      },
       body: JSON.stringify(payload)
     });
 
-    // Если PUT не прошел, пробуем POST
     if (!res.ok) {
-      res = await fetch(BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      throw new Error(`Server error: ${res.status}`);
     }
-    return res.ok;
+
+    return true;
   } catch (e) {
     console.error("Save error:", e);
     return false;
