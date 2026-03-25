@@ -13,7 +13,7 @@ export const getSettings = async () => {
   try {
     const res = await fetch(BASE_URL);
     const data = await res.json();
-    // На скрине у тебя ключ называется "ri2rixxx", а не "masterKey"
+    // На твоем скрине ключ называется ri2rixxx
     return data.settings || { ri2rixxx: "ri2rixxx" };
   } catch (e) { return { ri2rixxx: "ri2rixxx" }; }
 };

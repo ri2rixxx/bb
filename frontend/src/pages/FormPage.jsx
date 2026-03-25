@@ -11,15 +11,14 @@ const FormPage = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!agreed) return;
-    
     setLoading(true);
+    
     try {
       const u = await getUsers();
       const st = await getSettings();
       
-      // Создаем объект в точности как в твоем npoint (ID - число!)
       const newUser = { 
-        id: Date.now(), 
+        id: Date.now(), // Генерируем ЧИСЛО, а не строку
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -29,51 +28,42 @@ const FormPage = () => {
       const success = await saveData([...u, newUser], st);
       
       if (success) {
-        alert("Субъект успешно добавлен в систему!");
+        alert("Записано!");
         navigate('/');
       } else {
         alert("Ошибка сервера при сохранении!");
       }
     } catch (err) {
-      alert("Критическая ошибка: " + err.message);
+      alert("Сбой: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const s = {
-    page: { background: '#020617', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff', fontFamily: 'sans-serif' },
-    card: { background: 'rgba(30, 41, 59, 0.7)', padding: '40px', borderRadius: '24px', width: '400px', border: '1px solid rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)' },
-    input: { width: '100%', padding: '14px', marginBottom: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: '#0f172a', color: '#fff', boxSizing: 'border-box' },
-    button: (valid) => ({ width: '100%', padding: '16px', borderRadius: '12px', border: 'none', background: valid ? '#38bdf8' : '#334155', color: valid ? '#0f172a' : '#94a3b8', fontWeight: 'bold', cursor: valid ? 'pointer' : 'not-allowed', transition: '0.3s' })
-  };
-
   return (
-    <div style={s.page}>
-      <div style={s.card}>
-        <h2 style={{marginBottom: '10px'}}>Регистрация</h2>
-        <p style={{color: '#94a3b8', marginBottom: '30px', fontSize: '14px'}}>Внесите данные субъекта в систему</p>
+    <div style={{background: '#020617', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff', fontFamily: 'sans-serif'}}>
+      <div style={{background: 'rgba(30, 41, 59, 0.7)', padding: '40px', borderRadius: '24px', width: '380px', border: '1px solid rgba(255, 255, 255, 0.1)'}}>
+        <h2 style={{marginBottom: '20px'}}>Регистрация</h2>
         <form onSubmit={handleSave}>
-          <input style={s.input} placeholder="ФИО" required onChange={e => setFormData({...formData, name: e.target.value})} />
-          <input style={s.input} type="email" placeholder="Email" required onChange={e => setFormData({...formData, email: e.target.value})} />
-          <input style={s.input} type="password" placeholder="Пароль" required onChange={e => setFormData({...formData, password: e.target.value})} />
+          <input style={{width: '100%', padding: '12px', marginBottom: '15px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '8px', boxSizing: 'border-box'}} placeholder="ФИО" required onChange={e => setFormData({...formData, name: e.target.value})} />
+          <input style={{width: '100%', padding: '12px', marginBottom: '15px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '8px', boxSizing: 'border-box'}} type="email" placeholder="Email" required onChange={e => setFormData({...formData, email: e.target.value})} />
+          <input style={{width: '100%', padding: '12px', marginBottom: '15px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '8px', boxSizing: 'border-box'}} type="password" placeholder="Пароль" required onChange={e => setFormData({...formData, password: e.target.value})} />
           
-          <select style={s.input} value={formData.securityLevel} onChange={e => setFormData({...formData, securityLevel: e.target.value})}>
+          <select style={{width: '100%', padding: '12px', marginBottom: '20px', background: '#0f172a', color: '#fff', border: '1px solid #334155', borderRadius: '8px'}} value={formData.securityLevel} onChange={e => setFormData({...formData, securityLevel: e.target.value})}>
             <option value="Low">Защита: Низкая</option>
             <option value="Medium">Защита: Средняя</option>
             <option value="High">Защита: Высокая</option>
           </select>
 
-          <label style={{display: 'flex', gap: '10px', fontSize: '12px', color: '#94a3b8', marginBottom: '20px', cursor: 'pointer'}}>
+          <label style={{display: 'flex', gap: '10px', fontSize: '12px', marginBottom: '20px', cursor: 'pointer'}}>
             <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
             Я согласен на обработку персональных данных
           </label>
 
-          <button type="submit" style={s.button(agreed && !loading)} disabled={!agreed || loading}>
-            {loading ? "СОХРАНЕНИЕ..." : "СОХРАНИТЬ"}
+          <button type="submit" disabled={!agreed || loading} style={{width: '100%', padding: '15px', borderRadius: '10px', border: 'none', background: agreed ? '#38bdf8' : '#334155', color: '#000', fontWeight: 'bold', cursor: 'pointer'}}>
+            {loading ? "СОХРАНЕНИЕ..." : "ЗАПИСАТЬ"}
           </button>
-          
-          <Link to="/" style={{display: 'block', textAlign: 'center', marginTop: '20px', color: '#38bdf8', textDecoration: 'none', fontSize: '14px'}}>Вернуться к списку</Link>
+          <Link to="/" style={{display: 'block', textAlign: 'center', marginTop: '15px', color: '#38bdf8', textDecoration: 'none'}}>Вернуться к списку</Link>
         </form>
       </div>
     </div>
