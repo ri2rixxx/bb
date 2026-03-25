@@ -1,96 +1,83 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, saveUsers } from "../api";
+import { getUsers, getSettings, saveData } from "../api";
 import { Link } from "react-router-dom";
+import loadingMeme from "../assets/1.jpg"; 
 
 const ListPage = () => {
   const [users, setUsers] = useState([]);
+  const [settings, setSettings] = useState({ masterKey: "nstu2026" });
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminKey, setAdminKey] = useState("admin123"); // Мастер-ключ
+  const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState(null);
+  const [editData, setEditData] = useState({});
 
-  useEffect(() => {
-    fetchData();
-    
-    // Слушатель хоткея Ctrl + Alt + A
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.altKey && e.code === 'KeyA') {
-        const pass = prompt("Введите мастер-ключ администратора:");
-        if (pass === adminKey) {
-          setIsAdmin(prev => !prev);
-        } else {
-          alert("Доступ запрещен!");
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [adminKey]);
-
-  const fetchData = async () => {
-    const data = await getUsers();
-    setUsers(data);
+  const refresh = async () => {
+    const u = await getUsers();
+    const s = await getSettings();
+    setUsers(u);
+    setSettings(s);
+    setLoading(false);
   };
 
-  const deleteUser = async (id) => {
-    if (window.confirm("Удалить запись?")) {
-      const updated = users.filter(u => u.id !== id);
-      await saveUsers(updated);
-      setUsers(updated);
+  useEffect(() => { refresh(); }, []);
+
+  const handleSaveEdit = async () => {
+    const updated = users.map(u => u.id === editId ? editData : u);
+    const success = await saveData(updated, settings);
+    if (success) {
+      setEditId(null);
+      await refresh(); // Жёсткий перезапуск данных
+    } else {
+      alert("ОБЛАКО НЕ ПРИНЯЛО PUT/POST ЗАПРОС");
     }
   };
 
-  const maskData = (value, level) => {
-    if (isAdmin) return value;
-    if (level === 'High') return '••••••••';
-    if (level === 'Medium') return value.substring(0, 3) + '***@***';
-    return value;
-  };
+  if (loading) return (
+    <div style={{background:'#020617',height:'100vh',display:'flex',justifyContent:'center',alignItems:'center'}}>
+      <img src={loadingMeme} style={{width:'150px',borderRadius:'50%'}} alt="loading" />
+    </div>
+  );
 
   return (
-    <div className="dashboard">
-      <header className="header">
-        <div className="logo">
-          <span className="icon">🛡️</span>
-          <h1>Security SPA <small>v2.0 Cloud</small></h1>
+    <div style={{background:'#020617',minHeight:'100vh',color:'#fff',padding:'40px',fontFamily:'sans-serif'}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:'20px'}}>
+        <h2 style={{color:'#38bdf8'}}>АВТФ | SECURITY SYSTEM</h2>
+        <div>
+          <button onClick={() => {
+            const p = prompt("MASTER KEY:");
+            if (p === settings.masterKey) setIsAdmin(true);
+          }} style={{marginRight:'10px',padding:'10px',cursor:'pointer'}}>АДМИН</button>
+          <Link to="/add" style={{background:'#38bdf8',padding:'10px',color:'#000',textDecoration:'none',fontWeight:'bold',borderRadius:'5px'}}>+ ДОБАВИТЬ</Link>
         </div>
-        <div className="actions">
-          {isAdmin && <button className="btn-key" onClick={() => setAdminKey(prompt("Новый мастер-ключ:", adminKey))}>🔑 Сменить ключ</button>}
-          <Link to="/add" className="btn-add">+ Добавить запись</Link>
-        </div>
-      </header>
-
-      <div className="table-container">
-        <div className="status-bar">
-          Статус системы: <span className={isAdmin ? "status-admin" : "status-user"}>
-            {isAdmin ? "🔓 АДМИНИСТРАТОР (ПОЛНЫЙ ДОСТУП)" : "🔒 ПОЛЬЗОВАТЕЛЬ (ОГРАНИЧЕННЫЙ ДОСТУП)"}
-          </span>
-        </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>ФИО СУБЪЕКТА</th>
-              <th>КОНТАКТЫ</th>
-              <th>УРОВЕНЬ</th>
-              <th>ХЕШ ПАРОЛЯ</th>
-              <th>ДЕЙСТВИЯ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id} className={`row-${user.securityLevel.toLowerCase()}`}>
-                <td>{maskData(user.name, user.securityLevel)}</td>
-                <td>{maskData(user.email, user.securityLevel)}</td>
-                <td><span className={`badge ${user.securityLevel}`}>{user.securityLevel}</span></td>
-                <td className="hash-cell">{isAdmin ? user.password : "********************"}</td>
-                <td>
-                  <button className="btn-delete" onClick={() => deleteUser(user.id)}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
+
+      <table style={{width:'100%',borderCollapse:'collapse',background:'rgba(255,255,255,0.05)'}}>
+        <thead>
+          <tr style={{borderBottom:'2px solid #38bdf8'}}>
+            <th style={{padding:'15px',textAlign:'left'}}>ФИО СУБЪЕКТА</th>
+            {isAdmin && <th style={{padding:'15px',textAlign:'center'}}>УПРАВЛЕНИЕ</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u.id} style={{borderBottom:'1px solid #1e293b'}}>
+              <td style={{padding:'15px'}}>
+                {editId === u.id ? 
+                  <input style={{background:'#0f172a',color:'#fff',border:'1px solid #38bdf8',padding:'5px'}} value={editData.name} onChange={e=>setEditData({...editData,name:e.target.value})} /> : 
+                  u.name}
+              </td>
+              {isAdmin && (
+                <td style={{padding:'15px',textAlign:'center'}}>
+                  {editId === u.id ? 
+                    <button onClick={handleSaveEdit} style={{background:'#10b981',color:'#fff',border:'none',padding:'5px 10px',borderRadius:'4px',cursor:'pointer'}}>OK</button> : 
+                    <button onClick={() => {setEditId(u.id);setEditData(u);}} style={{background:'none',border:'none',color:'#38bdf8',cursor:'pointer',fontSize:'18px'}}>✎</button>
+                  }
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

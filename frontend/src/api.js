@@ -1,35 +1,44 @@
-import axios from 'axios';
-
-const BIN_ID = '69c0b96dc3097a1dd54e0419'; 
-const MASTER_KEY = '$2a$10$yqXDSfRml6O4hbGFt.qyguo41TP.f5WFiYWWfCjVLydqzsSmsrlW.'; 
-
-export const api = axios.create({
-  baseURL: `https://api.jsonbin.io/v3/b/${BIN_ID}`,
-  headers: {
-    'X-Master-Key': MASTER_KEY,
-    'Content-Type': 'application/json',
-    'X-Bin-Versioning': 'false' 
-  }
-});
+const BIN_ID = "af97ea51c6cb0e69f2ef"; 
+// Используем прокси для обхода блокировки CORS на Vercel
+const PROXY = "https://corsproxy.io/?";
+const BASE_URL = `${PROXY}https://api.npoint.io/${BIN_ID}`;
 
 export const getUsers = async () => {
   try {
-    const res = await api.get('/latest');
-    // Проверяем наличие record и users, чтобы не упасть, если база пустая
-    return res.data?.record?.users || [];
+    const res = await fetch(BASE_URL);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.users || [];
   } catch (e) {
-    console.error("Ошибка при получении данных:", e);
     return [];
   }
 };
 
-export const saveUsers = async (usersList) => {
+export const getSettings = async () => {
   try {
-    // ВАЖНО: JSONBin всегда ожидает объект, в котором лежит твой массив
-    await api.put('', { users: usersList });
-    return true;
+    const res = await fetch(BASE_URL);
+    if (!res.ok) return { masterKey: "nstu2026" };
+    const data = await res.json();
+    return data.settings || { masterKey: "nstu2026" };
   } catch (e) {
-    console.error("Ошибка при сохранении данных:", e);
+    return { masterKey: "nstu2026" };
+  }
+};
+
+export const saveData = async (users, settings) => {
+  try {
+    // Для PUT запроса через прокси используем прямой URL npoint в fetch, 
+    // но добавляем corsproxy.io в начало
+    const res = await fetch(`${PROXY}https://api.npoint.io/${BIN_ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ users, settings })
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("Save error:", e);
     return false;
   }
 };
