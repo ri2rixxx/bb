@@ -1,0 +1,10 @@
+{
+  "users": [
+    {"id": 1774254942790, "name": "Петроченко Маргарита Романовна", "email": "margarita10031983@gmail.com", "password": "...", "securityLevel": "Low"},
+    {"id": 1774255325156, "name": "Третьяков Матвей Александрович", "email": "testik17@gmail.com", "password": "...", "securityLevel": "Medium"},
+    {"id": 1774255371027, "name": "Кент Марк Александрович", "email": "kentik1703@gmail.com", "password": "...", "securityLevel": "High"},
+    {"id": 1774255508619, "name": "Кент Павел Александрович", "email": "pavlik_gg@gmail.com", "password": "...", "securityLevel": "Low"},
+    {"id": 1774263135062, "name": "Фимозиков Игорь Петрович", "email": "sosupiski228@gmail.com", "password": "...", "securityLevel": "Low"}
+  ],
+  "settings": { "ri2rixxx": "ri2rixxx" }
+}
