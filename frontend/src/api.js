@@ -1,50 +1,52 @@
 const BIN_ID = "9e3168f8d24c67097e40"; 
 const BASE_URL = `https://api.npoint.io/${BIN_ID}`;
 
+const fetchAllData = async () => {
+  const res = await fetch(`${BASE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+  return await res.json();
+};
+
+const pushAllData = async (payload) => {
+  const res = await fetch(BASE_URL, {
+    method: "POST", 
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  return res.ok;
+};
+
+
 export const getUsers = async () => {
-  try {
-    const res = await fetch(`${BASE_URL}?t=${Date.now()}`, { cache: 'no-store' });
-    const data = await res.json();
-    return Array.isArray(data.users) ? data.users : [];
-  } catch (e) { 
-    console.error("Fetch users error:", e);
-    return []; 
-  }
+  const data = await fetchAllData();
+  return Array.isArray(data.users) ? data.users : [];
 };
 
 export const getSettings = async () => {
-  try {
-    const res = await fetch(`${BASE_URL}?t=${Date.now()}`, { cache: 'no-store' });
-    const data = await res.json();
-    return data.settings || { masterKey: "ri2rixxx" };
-  } catch (e) { 
-    return { masterKey: "ri2rixxx" }; 
-  }
+  const data = await fetchAllData();
+  return data.settings || { masterKey: "nstu2026" };
 };
 
-export const saveData = async (users, settings) => {
-  const payload = {
-    users: Array.isArray(users) ? users : [],
-    settings: settings || { masterKey: "nstu2026" }
-  };
+export const updateSettings = async (newSettings) => {
+  const data = await fetchAllData();
+  return await pushAllData({ ...data, settings: newSettings });
+};
 
-  try {
-    const res = await fetch(BASE_URL, {
-      method: "POST", // POST на npoint работает стабильнее с CORS
-      headers: { 
-        "Content-Type": "application/json",
-        // Убираем лишние заголовки, чтобы не провоцировать CORS
-      },
-      body: JSON.stringify(payload)
-    });
+export const createUser = async (newUser) => {
+  const data = await fetchAllData();
+  const updatedUsers = [...(data.users || []), { ...newUser, id: Date.now() }];
+  return await pushAllData({ ...data, users: updatedUsers });
+};
 
-    if (!res.ok) {
-      throw new Error(`Server error: ${res.status}`);
-    }
+export const updateUser = async (id, updatedFields) => {
+  const data = await fetchAllData();
+  const updatedUsers = data.users.map(u => 
+    u.id.toString() === id.toString() ? { ...u, ...updatedFields } : u
+  );
+  return await pushAllData({ ...data, users: updatedUsers });
+};
 
-    return true;
-  } catch (e) {
-    console.error("Save error:", e);
-    return false;
-  }
+export const deleteUser = async (id) => {
+  const data = await fetchAllData();
+  const updatedUsers = data.users.filter(u => u.id.toString() !== id.toString());
+  return await pushAllData({ ...data, users: updatedUsers });
 };

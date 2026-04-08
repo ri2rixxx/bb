@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, getSettings, saveData } from "../api";
+import { getUsers, getSettings, deleteUser, updateSettings } from '../api';
 import { Link } from "react-router-dom";
+import loadingImg from "../assets/1.jpg"; 
 
 const ListPage = () => {
   const [users, setUsers] = useState([]);
@@ -8,30 +9,12 @@ const ListPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [editId, setEditId] = useState(null);
-  const [editData, setEditData] = useState({});
-
-  // Твои стили оформления
-  const s = {
-    page: { background: 'radial-gradient(circle at top right, #1e293b, #0f172a, #020617)', minHeight: '100vh', color: '#f8fafc', padding: '40px', fontFamily: 'sans-serif' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
-    statsRow: { display: 'flex', gap: '20px', marginBottom: '30px' },
-    statCard: { flex: 1, background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' },
-    searchBar: { width: '100%', padding: '12px 20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: '#fff', marginBottom: '20px', outline: 'none', boxSizing: 'border-box' },
-    glassCard: { background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(12px)', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', overflow: 'hidden' },
-    navBtn: { padding: '12px 24px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', border: 'none', fontSize: '14px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' },
-    th: { padding: '20px', textAlign: 'left', fontSize: '12px', color: '#94a3b8', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', textTransform: 'uppercase' },
-    td: { padding: '20px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '13px' },
-    level: (lvl) => ({ padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', background: lvl === 'High' ? '#ef4444' : lvl === 'Medium' ? '#f59e0b' : '#10b981', color: '#fff' }),
-    actionBtn: (color) => ({ background: 'none', border: `1px solid ${color}`, color: color, padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', marginRight: '5px', fontWeight: 'bold' }),
-    editInput: { background: '#0f172a', color: '#fff', border: '1px solid #38bdf8', borderRadius: '4px', padding: '5px', width: '90%' }
-  };
+  const [activeFilter, setActiveFilter] = useState(null);
+  const [loadingText, setLoadingText] = useState("Инициализация системы...");
 
   const loadData = async () => {
     setLoading(true);
-    const u = await getUsers();
-    const st = await getSettings();
+    const [u, st] = await Promise.all([getUsers(), getSettings()]);
     setUsers(u || []);
     setSettings(st || { masterKey: "nstu2026" });
     setLoading(false);
@@ -39,168 +22,211 @@ const ListPage = () => {
 
   useEffect(() => { loadData(); }, []);
 
-  // Генерация отчета CSV
-  const downloadReport = () => {
-    const headers = ["ФИО", "Email", "Уровень доступа", "Hash (BCrypt)"];
-    const rows = users.map(u => [
-      `"${u.name}"`, 
-      `"${u.email}"`, 
-      u.securityLevel, 
-      `"${u.password}"`
-    ].join(","));
+  // Анимация консольной загрузки
+  useEffect(() => {
+    if (loading) {
+      const phrases = [
+        "Установка соединения...",
+        "Подключаемся к базочке...",
+        "Авторизация в реестре...",
+        "Получение зашифрованных данных...",
+        "Доступ разрешен. Синхронизация..."
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+        setLoadingText(phrases[i % phrases.length]);
+        i++;
+      }, 600);
+      return () => clearInterval(interval);
+    }
+  }, [loading]);
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n"); // \uFEFF для корректного отображения кириллицы в Excel
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `security_report_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Смена ключа (Ctrl+Alt+A)
+  // Смена мастер-ключа (Ctrl + Alt + A)
   useEffect(() => {
     const handleKeyDown = async (e) => {
-      if (e.ctrlKey && e.altKey && e.code === 'KeyA') {
-        const oldKeyCheck = prompt("ПОДТВЕРДИТЕ ТЕКУЩИЙ МАСТЕР-КЛЮЧ:");
-        if (oldKeyCheck === settings.masterKey) {
-          const newKey = prompt("ВВЕДИТЕ НОВЫЙ МАСТЕР-КЛЮЧ:");
-          if (newKey && newKey.length > 3) {
-            const ok = await saveData(users, { masterKey: newKey });
-            if (ok) {
-              setSettings({ masterKey: newKey });
-              alert("Ключ успешно обновлен!");
+      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const current = prompt("ТЕКУЩИЙ МАСТЕР-КЛЮЧ:");
+        if (current === settings.masterKey) {
+          const next = prompt("НОВЫЙ МАСТЕР-КЛЮЧ:");
+          if (next?.trim()) {
+            const success = await updateSettings({ masterKey: next.trim() });
+            if (success) {
+              setSettings({ ...settings, masterKey: next.trim() });
+              alert("КЛЮЧ ОБНОВЛЕН");
             }
           }
-        } else if (oldKeyCheck !== null) {
-          alert("ОТКАЗАНО: Неверный ключ.");
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [users, settings]);
+  }, [settings.masterKey]);
 
-  const handleAdminLogin = async () => {
-    const fresh = await getSettings(); // Всегда берем свежий из облака
-    const pass = prompt("ВВЕДИТЕ МАСТЕР-КЛЮЧ:");
-    if (pass === fresh.masterKey) {
-      setSettings(fresh);
-      setIsAdmin(true);
-    } else if (pass) {
-      alert("НЕВЕРНЫЙ КОД");
-    }
+  const stats = {
+    total: users.length,
+    high: users.filter(u => u.securityLevel === 'High').length,
+    medium: users.filter(u => u.securityLevel === 'Medium').length,
+    low: users.filter(u => u.securityLevel === 'Low').length
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Удалить запись?")) {
-      const updated = users.filter(u => u.id !== id);
-      if (await saveData(updated, settings)) setUsers(updated);
-    }
+  // Функция генерации CSV отчета
+  const downloadReport = () => {
+    const headers = ["ID", "Name", "Email", "Security Level"];
+    const rows = users.map(u => [
+      u.id,
+      u.name,
+      u.email || "—",
+      u.securityLevel
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(e => e.join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `security_report_${new Date().toLocaleDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const handleSaveEdit = async () => {
-    const updated = users.map(u => u.id === editId ? editData : u);
-    if (await saveData(updated, settings)) {
-      setUsers(updated);
-      setEditId(null);
-    }
+  const getLevelStyle = (lvl) => {
+    const map = {
+      High: { color: '#ef4444', label: 'КРИТИЧЕСКИЙ', glow: '0 0 15px rgba(239, 68, 68, 0.3)' },
+      Medium: { color: '#f59e0b', label: 'СРЕДНИЙ', glow: 'none' },
+      Low: { color: '#38bdf8', label: 'ОБЩИЙ', glow: 'none' }
+    };
+    return map[lvl] || map.Low;
   };
 
-  const filteredUsers = users.filter(u => 
-    u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', 
+        alignItems: 'center', height: '100vh', background: '#020617', fontFamily: 'monospace' 
+      }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ position: 'relative', marginBottom: '30px' }}>
+          <img src={loadingImg} style={{ width: '120px', borderRadius: '50%', border: '2px solid #38bdf8' }} alt="Loading" />
+          <div style={{
+            position: 'absolute', top: '-10px', left: '-10px', right: '-10px', bottom: '-10px',
+            border: '2px solid transparent', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite'
+          }} />
+        </div>
+        <div style={{ color: '#38bdf8', fontSize: '14px', letterSpacing: '2px' }}>{'>'} {loadingText}</div>
+      </div>
+    );
+  }
 
-  if (loading) return <div style={s.page}>СИНХРОНИЗАЦИЯ С ОБЛАКОМ...</div>;
+  const filteredUsers = users
+    .filter(u => !activeFilter || u.securityLevel === activeFilter)
+    .filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div style={s.page}>
-      <header style={s.header}>
-        <div>
-          <h1 style={{ margin: 0 }}>SMART <span style={{ color: '#38bdf8' }}>SECURITY</span></h1>
-          <p style={{ color: '#94a3b8', fontSize: '14px' }}>v2.5: Реестр Информационной Безопасности</p>
-        </div>
+    <div style={{ 
+      background: '#020617', minHeight: '100vh', width: '100%', 
+      margin: 0, padding: '40px', boxSizing: 'border-box',
+      color: '#f8fafc', fontFamily: 'sans-serif' 
+    }}>
+      
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+        <h1 style={{ margin: 0, fontSize: '24px', letterSpacing: '1px' }}>РЕЕСТР <span style={{ color: '#38bdf8' }}>ОБЪЕКТОВ</span></h1>
         <div style={{ display: 'flex', gap: '15px' }}>
           {isAdmin && (
-            <button onClick={downloadReport} style={{ ...s.navBtn, background: '#10b981', color: '#fff' }}>ОТЧЕТ CSV</button>
+            <button 
+              onClick={downloadReport}
+              style={{ padding: '10px 20px', borderRadius: '6px', background: 'transparent', color: '#38bdf8', border: '1px solid #38bdf8', cursor: 'pointer', fontWeight: 'bold' }}>
+              ОТЧЕТ (.CSV)
+            </button>
           )}
           <button 
-            onClick={isAdmin ? () => setIsAdmin(false) : handleAdminLogin} 
-            style={{ ...s.navBtn, background: isAdmin ? '#ef4444' : '#334155', color: '#fff' }}
-          >
-            {isAdmin ? 'ВЫХОД' : 'АДМИН'}
+            onClick={() => {
+              if (isAdmin) setIsAdmin(false);
+              else if (prompt("ВВЕДИТЕ КЛЮЧ:") === settings.masterKey) setIsAdmin(true);
+            }} 
+            style={{ padding: '10px 20px', borderRadius: '6px', background: isAdmin ? '#ef4444' : '#1e293b', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+            {isAdmin ? 'ВЫХОД [ADM]' : 'АДМИНИСТРАТОР'}
           </button>
-          <Link to="/add" style={{ ...s.navBtn, background: '#38bdf8', color: '#0f172a' }}>+ СУБЪЕКТ</Link>
+          <Link to="/add" style={{ padding: '10px 20px', borderRadius: '6px', background: '#38bdf8', color: '#020617', textDecoration: 'none', fontWeight: 'bold' }}>+ ОБЪЕКТ</Link>
         </div>
       </header>
 
-      <div style={s.statsRow}>
-        <div style={s.statCard}>
-          <div style={{ color: '#94a3b8', fontSize: '11px' }}>ЗАПИСЕЙ В БАЗЕ</div>
-          <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{users.length}</div>
-        </div>
-        <div style={s.statCard}>
-          <div style={{ color: '#38bdf8', fontSize: '11px' }}>ДОСТУП</div>
-          <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{isAdmin ? "ПОЛНЫЙ (RW)" : "ТОЛЬКО ЧТЕНИЕ"}</div>
-        </div>
+      {}
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
+        {[
+          { id: null, label: 'В базе', count: stats.total, color: '#94a3b8' },
+          { id: 'High', label: 'Критический', count: stats.high, color: '#ef4444' },
+          { id: 'Medium', label: 'Средний', count: stats.medium, color: '#f59e0b' },
+          { id: 'Low', label: 'Общий', count: stats.low, color: '#38bdf8' }
+        ].map(s => (
+          <div key={s.label} onClick={() => setActiveFilter(s.id)} style={{ 
+            flex: 1, padding: '20px', background: '#0f172a', borderRadius: '12px', 
+            border: `1px solid ${activeFilter === s.id ? s.color : 'rgba(255,255,255,0.05)'}`, 
+            cursor: 'pointer', textAlign: 'center', transition: '0.2s'
+          }}>
+            <div style={{ fontSize: '11px', color: s.color, textTransform: 'uppercase', marginBottom: '5px' }}>{s.label}</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{s.count}</div>
+          </div>
+        ))}
       </div>
 
-      <input style={s.searchBar} placeholder="Поиск по ФИО или Email..." onChange={(e) => setSearchTerm(e.target.value)} />
+      {}
+      <div style={{ width: '100%', marginBottom: '30px' }}>
+        <input 
+          style={{ 
+            width: '100%', padding: '18px 25px', borderRadius: '12px', background: '#0f172a', 
+            border: '1px solid rgba(255,255,255,0.05)', color: '#fff', fontSize: '16px',
+            outline: 'none', boxSizing: 'border-box'
+          }} 
+          placeholder="Поиск по реестру..." 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+        />
+      </div>
 
-      <div style={s.glassCard}>
+      {}
+      <div style={{ background: 'rgba(15, 23, 42, 0.5)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: 'rgba(0,0,0,0.3)' }}>
-              <th style={s.th}>Субъект</th>
-              <th style={s.th}>Данные / Hash</th>
-              <th style={s.th}>Уровень</th>
-              {isAdmin && <th style={s.th}>Действия</th>}
+            <tr style={{ background: 'rgba(255,255,255,0.02)', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
+              <th style={{ textAlign: 'left', padding: '20px' }}>Субъект</th>
+              {isAdmin && <th style={{ textAlign: 'left', padding: '20px' }}>Email</th>}
+              <th style={{ textAlign: 'center', padding: '20px' }}>Доступ</th>
+              {isAdmin && <th style={{ textAlign: 'right', padding: '20px' }}>Управление</th>}
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((u) => (
-              <tr key={u.id}>
-                <td style={s.td}>
-                  {editId === u.id ? 
-                    <input style={s.editInput} value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} /> : 
-                    (isAdmin || u.securityLevel === 'Low' ? u.name : '•••• ••••••••')}
-                </td>
-                <td style={s.td}>
-                  {editId === u.id ? 
-                    <input style={s.editInput} value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} /> : 
-                    (isAdmin ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ color: '#94a3b8', fontSize: '11px' }}>{u.email}</span>
-                        <code style={{ color: '#38bdf8', fontSize: '10px', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 4px', borderRadius: '4px' }}>
-                          {u.password}
-                        </code>
-                      </div>
-                    ) : (u.securityLevel === 'High' ? 'зашифровано' : u.email))}
-                </td>
-                <td style={s.td}>
-                  {editId === u.id ? (
-                    <select style={s.editInput} value={editData.securityLevel} onChange={e => setEditData({...editData, securityLevel: e.target.value})}>
-                      <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
-                    </select>
-                  ) : <span style={s.level(u.securityLevel)}>{u.securityLevel}</span>}
-                </td>
-                {isAdmin && (
-                  <td style={s.td}>
-                    {editId === u.id ? (
-                      <button onClick={handleSaveEdit} style={s.actionBtn('#10b981')}>SAVE</button>
-                    ) : (
-                      <>
-                        <button onClick={() => { setEditId(u.id); setEditData(u); }} style={s.actionBtn('#38bdf8')}>✎</button>
-                        <button onClick={() => handleDelete(u.id)} style={s.actionBtn('#ef4444')}>✖</button>
-                      </>
-                    )}
+            {filteredUsers.map(u => {
+              const conf = getLevelStyle(u.securityLevel);
+              return (
+                <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                  <td style={{ padding: '20px' }}>
+                    {isAdmin || u.securityLevel === 'Low' 
+                      ? <Link to={`/detail/${u.id}`} style={{ color: '#fff', textDecoration: 'none' }}>{u.name}</Link> 
+                      : <span style={{ color: '#475569' }}>[ЗАСЕКРЕЧЕНО]</span>}
                   </td>
-                )}
-              </tr>
-            ))}
+                  {isAdmin && <td style={{ padding: '20px', color: '#38bdf8', fontFamily: 'monospace' }}>{u.email || '—'}</td>}
+                  <td style={{ padding: '20px', textAlign: 'center' }}>
+                    <span style={{ 
+                      color: conf.color, border: `1px solid ${conf.color}44`, 
+                      padding: '4px 12px', borderRadius: '4px', fontSize: '10px', 
+                      fontWeight: 'bold', boxShadow: conf.glow 
+                    }}>
+                      {conf.label}
+                    </span>
+                  </td>
+                  {isAdmin && (
+                    <td style={{ padding: '20px', textAlign: 'right' }}>
+                      <button onClick={() => deleteUser(u.id).then(loadData)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}>УДАЛИТЬ</button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
