@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
-import { getUsers, getSettings, createUser, updateUser } from '../api';
+import { getUsers, createUser, updateUser } from '../api';
 
 const FormPage = () => {
   const navigate = useNavigate();
@@ -17,11 +17,13 @@ const FormPage = () => {
       setIsEdit(true);
       const fetchUser = async () => {
         try {
+          console.log(`%c[SYSTEM]: Загрузка данных субъекта ID: ${id}...`, "color: #38bdf8;");
           const users = await getUsers();
           const userToEdit = users.find(u => u.id.toString() === id);
           if (userToEdit) {
             setFormData({ ...userToEdit, password: '' });
             setAgreed(true); 
+            console.log("%c[SYSTEM]: Данные загружены успешно.", "color: #10b981;");
           }
         } catch (err) {
           console.error("Ошибка загрузки данных:", err);
@@ -37,16 +39,11 @@ const FormPage = () => {
 
   const validate = () => {
     const errs = {};
-
     const nameParts = formData.name.trim().split(/\s+/);
-    if (nameParts.length < 2) {
-      errs.name = "Введите Фамилию и Имя полностью";
-    }
+    if (nameParts.length < 2) errs.name = "Введите Фамилию и Имя полностью";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      errs.email = "Некорректный формат почты";
-    }
+    if (!emailRegex.test(formData.email)) errs.email = "Некорректный формат почты";
 
     if (!isEdit || formData.password) {
       if (formData.password.length < 8) {
@@ -63,14 +60,23 @@ const FormPage = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+
+    // ФИШКА: Предупреждение о высоком уровне доступа
+    if (formData.securityLevel === 'High') {
+      const confirmHigh = window.confirm("ВНИМАНИЕ: Уровень 'High' предоставляет доступ к конфиденциальным секторам. Вы уверены?");
+      if (!confirmHigh) return;
+    }
     
     setLoading(true);
     try {
+      console.log(`%c[REGISTRY]: Инициализация записи: ${formData.name}`, "color: #38bdf8; font-weight: bold;");
+      
       let success = false;
       const dataToSend = { ...formData };
 
       if (formData.password) {
         dataToSend.password = bcrypt.hashSync(formData.password, 10);
+        console.log("%c[SECURITY]: Пароль зашифрован протоколом BCRYPT.", "color: #f59e0b;");
       } else if (isEdit) {
         delete dataToSend.password;
       }
@@ -82,8 +88,12 @@ const FormPage = () => {
         success = await createUser(dataToSend);
       }
 
-      if (success) navigate('/');
-      else alert("Ошибка записи в базу данных");
+      if (success) {
+        console.log("%c[SUCCESS]: Объект успешно внесен в базу данных.", "color: #10b981; font-weight: bold;");
+        navigate('/');
+      } else {
+        alert("Ошибка записи в базу данных");
+      }
     } catch (err) {
       console.error(err);
       alert("Критическая ошибка при сохранении");
@@ -95,23 +105,23 @@ const FormPage = () => {
   const s = {
     wrap: { background: '#020617', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' },
     card: { background: '#0f172a', padding: '40px', borderRadius: '24px', width: '100%', maxWidth: '400px', border: '1px solid #1e293b', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)' },
-    label: { display: 'block', color: '#94a3b8', fontSize: '12px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' },
+    label: { display: 'block', color: '#94a3b8', fontSize: '11px', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' },
     input: (hasError) => ({
       width: '100%', padding: '14px', borderRadius: '12px', background: '#020617', border: `1px solid ${hasError ? '#ef4444' : '#1e293b'}`,
-      color: '#fff', marginBottom: '20px', outline: 'none', boxSizing: 'border-box'
+      color: '#fff', marginBottom: '20px', outline: 'none', boxSizing: 'border-box', fontSize: '14px'
     }),
     errText: { color: '#ef4444', fontSize: '11px', marginTop: '-15px', marginBottom: '15px' },
     btn: {
       width: '100%', padding: '16px', borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer',
       background: (agreed && !loading) ? '#38bdf8' : '#334155', color: (agreed && !loading) ? '#0f172a' : '#94a3b8',
-      transition: '0.2s'
+      transition: '0.2s', letterSpacing: '1px'
     }
   };
 
   return (
     <div style={s.wrap}>
       <div style={s.card}>
-        <h2 style={{ color: '#fff', marginBottom: '30px', textAlign: 'center' }}>
+        <h2 style={{ color: '#fff', marginBottom: '30px', textAlign: 'center', letterSpacing: '1px' }}>
           {isEdit ? 'ОБНОВЛЕНИЕ ДАННЫХ' : 'РЕГИСТРАЦИЯ СУБЪЕКТА'}
         </h2>
         <form onSubmit={handleSave}>
@@ -135,7 +145,7 @@ const FormPage = () => {
           />
           {errors.email && <div style={s.errText}>{errors.email}</div>}
 
-          <label style={s.label}>{isEdit ? 'Новый пароль (оставьте пустым для сохранения)' : 'Пароль доступа'}</label>
+          <label style={s.label}>{isEdit ? 'Новый пароль (пусто для сохранения)' : 'Пароль доступа'}</label>
           <input 
             type="password"
             style={s.input(errors.password)}
@@ -156,17 +166,17 @@ const FormPage = () => {
           </select>
 
           <button type="submit" disabled={!agreed || loading} style={s.btn}>
-            {loading ? 'ЗАПИСЬ...' : (isEdit ? 'ПОДТВЕРДИТЬ ИЗМЕНЕНИЯ' : 'ВНЕСТИ В РЕЕСТР')}
+            {loading ? 'ЗАПИСЬ В РЕЕСТР...' : (isEdit ? 'ОБНОВИТЬ ДАННЫЕ' : 'ВНЕСТИ В РЕЕСТР')}
           </button>
 
           {!isEdit && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '20px', color: '#64748b', fontSize: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '20px', color: '#64748b', fontSize: '11px', cursor: 'pointer' }}>
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
               Подтверждаю согласие на обработку данных
             </label>
           )}
         </form>
-        <Link to="/" style={{ display: 'block', textAlign: 'center', marginTop: '20px', color: '#38bdf8', textDecoration: 'none', fontSize: '12px' }}>ВЕРНУТЬСЯ В СПИСОК</Link>
+        <Link to="/" style={{ display: 'block', textAlign: 'center', marginTop: '20px', color: '#38bdf8', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>ВЕРНУТЬСЯ В СПИСОК</Link>
       </div>
     </div>
   );
