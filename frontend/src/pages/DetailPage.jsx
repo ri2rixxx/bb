@@ -25,7 +25,6 @@ const DetailPage = () => {
 
     const settings = await getSettings();
 
-    // Проверка прав доступа
     if (found.securityLevel === 'High') {
       const pass = prompt("ВНИМАНИЕ: КРИТИЧЕСКИЙ УРОВЕНЬ. Введите мастер-ключ:");
       if (pass !== settings.masterKey) {
@@ -44,7 +43,6 @@ const DetailPage = () => {
 
   useEffect(() => { loadData(); }, [id]);
 
-  // Слушатель для Panic Button (Shift + Esc)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.shiftKey && e.key === 'Escape') {
