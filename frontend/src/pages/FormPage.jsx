@@ -61,7 +61,6 @@ const FormPage = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    // ФИШКА: Предупреждение о высоком уровне доступа
     if (formData.securityLevel === 'High') {
       const confirmHigh = window.confirm("ВНИМАНИЕ: Уровень 'High' предоставляет доступ к конфиденциальным секторам. Вы уверены?");
       if (!confirmHigh) return;
