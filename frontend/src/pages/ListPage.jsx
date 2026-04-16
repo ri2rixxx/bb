@@ -119,7 +119,7 @@ const ListPage = () => {
         .neon-text { text-shadow: 0 0 10px ${neon.blue}; }
       `}</style>
       
-      {/* СТАТУС БАР */}
+      {}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: neon.blue, marginBottom: '15px', borderBottom: `1px solid ${neon.blue}33`, paddingBottom: '5px' }}>
         <span>ГДЕ НАХОДИШЬСЯ: СИБИРЬ МАТУШКА</span>
         <span className="neon-text">ВРЕМЕЧКО: {currentTime}</span>
@@ -142,7 +142,7 @@ const ListPage = () => {
 
       <div style={{ display: 'flex', gap: '25px' }}>
         <div style={{ flex: 1 }}>
-          {/* СТАТИСТИКА */}
+          {}
           <div style={{ display: 'flex', gap: '12px', marginBottom: '25px' }}>
             {[
               { k: null, l: 'ВСЕ', c: safeUsers.length, cl: neon.blue },
@@ -160,7 +160,7 @@ const ListPage = () => {
             ))}
           </div>
 
-          {/* ПОИСК */}
+          {}
           <input 
             style={{ width: '100%', padding: '18px', background: 'rgba(2, 6, 23, 0.9)', border: `1px solid ${neon.blue}`, color: neon.blue, outline: 'none', marginBottom: '25px', boxSizing: 'border-box' }} 
             placeholder="> ВВЕДИТЕ ФИО ДЛЯ СКАНИРОВАНИЯ..." 
@@ -170,7 +170,7 @@ const ListPage = () => {
             }} 
           />
 
-          {/* ТАБЛИЦА */}
+          {}
           <div style={{ background: 'rgba(15, 23, 42, 0.85)', border: `1px solid ${neon.border}`, position: 'relative', overflow: 'hidden' }}>
             <div className="scanline"></div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -210,7 +210,7 @@ const ListPage = () => {
           </div>
         </div>
 
-        {/* ПАНЕЛЬ ЛОГОВ */}
+        {}
         <div style={{ width: '320px', background: 'rgba(15, 23, 42, 0.7)', padding: '20px', borderLeft: `1px solid ${neon.blue}44`, display: 'flex', flexDirection: 'column' }}>
           <div style={{ color: neon.blue, fontSize: '12px', fontWeight: 'bold', marginBottom: '15px', borderBottom: `1px solid ${neon.blue}`, paddingBottom: '10px' }}>ЛОГ СОБЫТИЙ СИСТЕМЫ</div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
