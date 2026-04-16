@@ -4,7 +4,7 @@ const router = jsonServer.router('db.json');
 const middlewares = jsonServer.defaults();
 const cors = require('cors');
 
-server.use(cors()); // Разрешаем запросы со всех доменов
+server.use(cors());
 server.use(middlewares);
 server.use(jsonServer.bodyParser);
 
